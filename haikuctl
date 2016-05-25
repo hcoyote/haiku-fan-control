@@ -1,0 +1,79 @@
+#!/usr/bin/python
+#
+# A short python script to control SenseME-enabled Haiku fans from
+# BigAss fans. Based on the protocol deconstruction done by Bruce
+# Pennypacker (http://bruce.pennypacker.org/tag/haiku/). 
+#
+# This script was written by Travis Campbell <hcoyote@ghostar.org>
+# in order to control the lights and fans using MacOS dictation
+# commands via Automator.
+
+import re, os, sys, socket
+import argparse
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--address', '-H', required=True, dest='ip', help='Address of the SenseME node')
+parser.add_argument('--name', '-n', required=True, dest='device_name', help='Name of the fan, wall control, or light location to control')
+parser.add_argument('--device', '-d', default='fan', dest='device_type', help='Type of device to send the command to (default: %(default)s)')
+parser.add_argument('--state', '-s', default='on', dest='device_state', choices=['on','off','partial'], help='Set device state (default: %(default)s)')
+parser.add_argument('--level', '-l', dest='device_level', help='Set device speed/level')
+
+args = parser.parse_args()
+
+device_state = args.device_state
+device_name = args.device_name
+device_type = args.device_type
+ip = args.ip
+device_level = args.device_level
+
+def queryFan(fanIP, msg):
+	sock = socket.socket()
+	sock.settimeout(5)
+	sock.connect((fanIP, 31415))
+
+	sock.send(msg)
+	status = sock.recv(1024)
+	sock.close
+
+	matchObj = re.match('\(.*;([^;]+)\)', status)
+	if matchObj:
+		print("query %s returned: %s" % (msg, matchObj.group(1)))
+		return (matchObj.group(1))
+	else:
+		self.DebugMsg("fetch %s returned: unknown: %s" % (msg, status))
+		return False
+
+
+
+def build_command():
+	commandtype = ""
+	state = ""
+
+	# if we're doing a partial state, we need to generate a longer
+	# command that includes the LEVEL or SPD command.  Otherwise,
+	# we just need to control the current state of PWR.
+	if device_state == 'on':
+		commandtype = 'PWR'
+		state = device_state
+	elif device_state == 'off':
+		commandtype = 'PWR'
+		state = device_state
+	elif device_state == 'partial' and device_type == 'light':
+		commandtype = 'LEVEL;SET'
+		state = device_level
+	elif device_state == 'partial' and device_type == 'fan':
+		commandtype = 'SPD;SET'
+		state = device_level
+
+	command = "<{};{};{};{}>".format(device_name.title(),device_type.upper(),commandtype,state)
+	return command
+
+def main():
+	command = build_command()
+	f = queryFan(ip, command)
+	print f
+
+
+if __name__ == "__main__":
+	main()
