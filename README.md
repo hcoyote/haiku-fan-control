@@ -38,6 +38,14 @@ iPhone/Android app. This name is auto-uppercased within the script.
 
 IP address is the address of the device.
 
+This script currently does *not* control 
+
+* Woosh mode, 
+* enabling/disabling Auto-on,
+* Smart settings
+* Scheduling
+
+
 ## Turn off a light in the Office
 
 ```
